@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - Suivi IT</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; padding: 20px; margin: 0; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .login-box { max-width: 350px; margin: 100px auto; background: white; padding: 30px; border-radius: 8px; border: 1px solid #cbd5e1; text-align: center; }
+    input, select { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { background: #2563eb; color: white; border: none; padding: 9px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .kpi { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .kpi-val { font-size: 1.8rem; font-weight: bold; color: #2563eb; }
+    .card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+    th { background: #f8fafc; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+    .badge-Nouveau { background: #dbeafe; color: #1e40af; }
+    .badge-En-cours { background: #fef3c7; color: #92400e; }
+    .badge-Résolu { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+
+  <!-- Écran de connexion de sécurité -->
+  <div id="loginSection" class="login-box">
+    <h2>Accès Administrateur</h2>
+    <input type="password" id="passInput" placeholder="Mot de passe" style="width:100%; margin-bottom:15px; box-sizing:border-box;">
+    <button onclick="checkPass()" style="width:100%;">Se connecter</button>
+  </div>
+
+  <!-- Contenu du Dashboard (caché par défaut) -->
+  <div id="adminContent" class="container" style="display: none;">
+    <h1>Dashboard de Suivi IT</h1>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi">Total Tickets<div class="kpi-val" id="kpiTotal">0</div></div>
+      <div class="kpi">Nouveaux<div class="kpi-val" id="kpiNew" style="color:#1e40af">0</div></div>
+      <div class="kpi">En Cours<div class="kpi-val" id="kpiProgress" style="color:#92400e">0</div></div>
+      <div class="kpi">Résolus<div class="kpi-val" id="kpiResolved" style="color:#166534">0</div></div>
+    </div>
+
+    <!-- Tableau de suivi -->
+    <div class="card">
+      <h3>Liste des Tickets</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Date</th>
+            <th>Demandeur</th>
+            <th>Sujet & Détails</th>
+            <th>Priorité</th>
+            <th>Statut</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="ticketList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // Mot de passe par défaut : admin123
+    function checkPass() {
+      const pass = document.getElementById('passInput').value;
+      if (pass === 'admin123') {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        loadDashboard();
+      } else {
+        alert('Mot de passe incorrect !');
+      }
+    }
+
+    function loadDashboard() {
+      const tickets = JSON.parse(localStorage.getItem('shared_it_tickets')) || [];
+      
+      // Mise à jour KPI
+      document.getElementById('kpiTotal').innerText = tickets.length;
+      document.getElementById('kpiNew').innerText = tickets.filter(t => t.status === 'Nouveau').length;
+      document.getElementById('kpiProgress').innerText = tickets.filter(t => t.status === 'En cours').length;
+      document.getElementById('kpiResolved').innerText = tickets.filter(t => t.status === 'Résolu').length;
+
+      // Remplissage du tableau
+      const tbody = document.getElementById('ticketList');
+      tbody.innerHTML = '';
+
+      tickets.forEach((t, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${t.id}</td>
+          <td><small>${t.date}</small></td>
+          <td>${t.user}</td>
+          <td><strong>${t.subject}</strong><br><small style="color:#64748b">${t.description}</small></td>
+          <td><strong>${t.priority}</strong></td>
+          <td><span class="badge badge-${t.status.replace(' ', '-')}">${t.status}</span></td>
+          <td>
+            <select onchange="updateStatus(${index}, this.value)">
+              <option value="Nouveau" ${t.status === 'Nouveau' ? 'selected' : ''}>Nouveau</option>
+              <option value="En cours" ${t.status === 'En cours' ? 'selected' : ''}>En cours</option>
+              <option value="Résolu" ${t.status === 'Résolu' ? 'selected' : ''}>Résolu</option>
+            </select>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateStatus(index, newStatus) {
+      const tickets = JSON.parse(localStorage.getItem('shared_it_tickets')) || [];
+      tickets[index].status = newStatus;
+      localStorage.setItem('shared_it_tickets', JSON.stringify(tickets));
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>
